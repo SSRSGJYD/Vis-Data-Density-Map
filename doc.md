@@ -19,34 +19,46 @@ We use common dimension reduction method, i.e., TSNE. However, when dimension gr
 
 ## Density Map from Kernel Density
 
-For efficiency issue, we divide 2-D Euclidean space into <img src="svgs/dc0d766062f00b3bf4ff7af4097991d4.svg?invert_in_darkmode" align=middle width=52.83089789999999pt height=22.465723500000017pt/> grids and count number of points in each grid by class. For <img src="svgs/9b325b9e31e85137d1de765f43c0f8bc.svg?invert_in_darkmode" align=middle width=12.92464304999999pt height=22.465723500000017pt/> classes, there should be <img src="svgs/9b325b9e31e85137d1de765f43c0f8bc.svg?invert_in_darkmode" align=middle width=12.92464304999999pt height=22.465723500000017pt/> counting results which are called grid maps. Then we do kernel density estimation on those  <img src="svgs/9b325b9e31e85137d1de765f43c0f8bc.svg?invert_in_darkmode" align=middle width=12.92464304999999pt height=22.465723500000017pt/> grid maps. We notice that KDE can be implemented by convolution operation on the grid maps.
+For efficiency issue, we divide 2-D Euclidean space into $M\times N$ grids and count number of points in each grid by class. For $C$ classes, there should be $C$ counting results which are called grid maps. Then we do kernel density estimation on those  $C$ grid maps. We notice that KDE can be implemented by convolution operation on the grid maps.
 
 Kernel function is used in kernel density estimation. We implement some common kernel functions:
 
-+ Uniform: <img src="svgs/b53eac71230c188b6a7e64c821d3f314.svg?invert_in_darkmode" align=middle width=153.50939505pt height=27.77565449999998pt/>
-+ Triangular: <img src="svgs/c2917ba5cf49eace32d82f7489699aa1.svg?invert_in_darkmode" align=middle width=172.4934189pt height=33.20539859999999pt/>
-+ Gaussian: <img src="svgs/b2b87742b851d6e3d6427b63648cf3f5.svg?invert_in_darkmode" align=middle width=118.25701964999998pt height=40.95817769999997pt/>
++ Uniform: $K(x)=\frac{1}{2w}I(|x|<w)$
++ Triangular: $K(x)=\frac{w-|x|}{w^2}I(|x|<w)$
++ Gaussian: $K(x)=\frac{1}{2\pi}e^{-\frac{x^2}{2w^2}}$
 
 A 2-D kernel function can be calculated by multiply 1-D kernel functions of x and y dimensions:
-<p align="center"><img src="svgs/66a0ea1187b413f8d08fc713f619cc5d.svg?invert_in_darkmode" align=middle width=167.67521759999997pt height=16.438356pt/></p>
+$$
+K_2(x,y)=K_1(x)K_1(y)
+$$
 In our implementation, we limit the range of Gaussian density estimation by using a Gaussian kernel. All kernel size should be odd number.
 
 
 
 ## Density Map Visualization
 
-For <img src="svgs/9b325b9e31e85137d1de765f43c0f8bc.svg?invert_in_darkmode" align=middle width=12.92464304999999pt height=22.465723500000017pt/> classes and grid map of <img src="svgs/dc0d766062f00b3bf4ff7af4097991d4.svg?invert_in_darkmode" align=middle width=52.83089789999999pt height=22.465723500000017pt/>, we visualize it on a <img src="svgs/dc0d766062f00b3bf4ff7af4097991d4.svg?invert_in_darkmode" align=middle width=52.83089789999999pt height=22.465723500000017pt/> image where each pixel represent a grid. 
+For $C$ classes and grid map of $M\times N$, we visualize it on a $M\times N$ image where each pixel represent a grid. 
 
 Numbers of points in each class may vary greatly. To balance between classes, we first normalize grid maps by class so that maximum value is 1 and minimum value is 0 in each class:
-<p align="center"><img src="svgs/f604181f350fd9005e49fd5ad9f6dc54.svg?invert_in_darkmode" align=middle width=377.0290128pt height=36.0951987pt/></p>
+$$
+\text{GridMap}^c[i,j]=\frac{\text{OriginalGridMap}^c[i,j]-\text{minvalue}^c}{\text{maxvalue}^c-\text{minvalue}^c}
+$$
 where
-<p align="center"><img src="svgs/9b004964749a076e39f9c16366ede485.svg?invert_in_darkmode" align=middle width=709.57478295pt height=25.1935035pt/></p>
+$$
+\text{maxvalue}^c=\max_{1\le i\le M,1\le j\le N}\text{OriginalGridMap}^c[i,j],\\ \text{minvalue}^c=\min_{1\le i\le M,1\le j\le N}\text{OriginalGridMap}^c[i,j]
+$$
 To represent density of points, we define saturation value of each pixel according to total density of the corresponding grid:
-<p align="center"><img src="svgs/416bea9543453555d4605bce2ebbdfd6.svg?invert_in_darkmode" align=middle width=210.90709364999998pt height=47.60747145pt/></p>
-where <img src="svgs/6bac6ec50c01592407695ef84f457232.svg?invert_in_darkmode" align=middle width=13.01596064999999pt height=22.465723500000017pt/> is used to ensure that all saturation value is valid:
-<p align="center"><img src="svgs/8a24aaa0c10c91f1aa02a7427af6aa4d.svg?invert_in_darkmode" align=middle width=259.6908897pt height=47.60747145pt/></p>
-To show distribution of each class, we use per-pixel color interpolation in HSV color space. For each of the <img src="svgs/9b325b9e31e85137d1de765f43c0f8bc.svg?invert_in_darkmode" align=middle width=12.92464304999999pt height=22.465723500000017pt/> classes, we assign a specific Hue value. Then we calculate hue value of each pixel as weighted sum of all class hue values:
-<p align="center"><img src="svgs/41caa49522b9544ac8687d8ef4e4ea71.svg?invert_in_darkmode" align=middle width=312.26328209999997pt height=46.72166729999999pt/></p>
+$$
+S[i,j]=\frac{1}{U}\sum_{c=1}^C\text{GridMap}^c[i,j]
+$$
+where $U$ is used to ensure that all saturation value is valid:
+$$
+U=\max_{1\le i\le M,1\le j\le N}{\sum_{c=1}^C\text{GridMap}^c[i,j]}
+$$
+To show distribution of each class, we use per-pixel color interpolation in HSV color space. For each of the $C$ classes, we assign a specific Hue value. Then we calculate hue value of each pixel as weighted sum of all class hue values:
+$$
+H[i,j]=\frac{\sum_{c=1}^C\text{GridMap}^c[i,j]*\text{ClassHue}[c]}{\sum_{c=1}^C\text{GridMap}^c[i,j]}
+$$
 We set value of V to 1 for all pixels.
 
 
@@ -183,7 +195,7 @@ It indicates that PCA preprocessing is a litter bit faster than pure TSNE method
 
 #### Comparison of Kernel Functions
 
-We set <img src="svgs/121c390773b2ac8a4c60b6ef7c49568c.svg?invert_in_darkmode" align=middle width=101.3011164pt height=22.465723500000017pt/> and compare visualization results from different kernel functions:
+We set $H=W=200$ and compare visualization results from different kernel functions:
 
 | kernel size | Uniform                                                      | Gaussian                                                     | Triangular                                                   |
 | ----------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -197,13 +209,13 @@ It indicates that uniform kernel produces smoothest density map, while triangula
 
 We use uniform kernel:
 
-| kernel size | <img src="svgs/c987ea897aa6c55cfb9a2743f83e5ae2.svg?invert_in_darkmode" align=middle width=52.968029399999985pt height=21.18721440000001pt/> | <img src="svgs/422da1937d16c5751312b249c2e04fcd.svg?invert_in_darkmode" align=middle width=69.40644809999999pt height=21.18721440000001pt/> | <img src="svgs/e0ab29f0a625e71b180d1eee3252be89.svg?invert_in_darkmode" align=middle width=69.40644809999999pt height=21.18721440000001pt/>                                  |
+| kernel size | $50\times 50$ | $100\times 100$ | $200\times 200$                                  |
 | ----------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | 7           | <img src="result/uniform,ksize=7,normclass=True(50).png" style="zoom:100%;" /> | <img src="result/uniform,ksize=7,normclass=True(100).png" style="zoom:100%;" /> | <img src="result/uniform,ksize=7,normclass=True(200).png" /> |
 | 17          | <img src="result/uniform,ksize=17,normclass=True(50).png" style="zoom:100%;" /> | <img src="result/uniform,ksize=17,normclass=True(100).png" style="zoom:100%;" /> | <img src="result/uniform,ksize=17,normclass=True(200).png" /> |
 | 27          | <img src="result/uniform,ksize=27,normclass=True(50).png" style="zoom:100%;" /> | <img src="result/uniform,ksize=27,normclass=True(100).png" style="zoom:100%;" /> | <img src="result/uniform,ksize=27,normclass=True(200).png" /> |
 
-It indicates that using smaller <img src="svgs/7b9a0316a2fcd7f01cfd556eedf72e96.svg?invert_in_darkmode" align=middle width=14.99998994999999pt height=22.465723500000017pt/> and <img src="svgs/84c95f91a742c9ceb460a83f9b5090bf.svg?invert_in_darkmode" align=middle width=17.80826024999999pt height=22.465723500000017pt/> (larger grid size) makes density maps smoother. Moreover, with different <img src="svgs/7b9a0316a2fcd7f01cfd556eedf72e96.svg?invert_in_darkmode" align=middle width=14.99998994999999pt height=22.465723500000017pt/> and <img src="svgs/84c95f91a742c9ceb460a83f9b5090bf.svg?invert_in_darkmode" align=middle width=17.80826024999999pt height=22.465723500000017pt/>, suitable kernel size is also changing. Generally, when <img src="svgs/7b9a0316a2fcd7f01cfd556eedf72e96.svg?invert_in_darkmode" align=middle width=14.99998994999999pt height=22.465723500000017pt/> and <img src="svgs/84c95f91a742c9ceb460a83f9b5090bf.svg?invert_in_darkmode" align=middle width=17.80826024999999pt height=22.465723500000017pt/> becomes larger, the suitable kernel size becomes larger and vice versa.
+It indicates that using smaller $H$ and $W$ (larger grid size) makes density maps smoother. Moreover, with different $H$ and $W$, suitable kernel size is also changing. Generally, when $H$ and $W$ becomes larger, the suitable kernel size becomes larger and vice versa.
 
 
 
